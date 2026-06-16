@@ -20,10 +20,16 @@ if not os.path.exists("movies.pkl") or not os.path.exists("similarity.pkl"):
     # Merge
     credits.columns = ["id", "title", "cast", "crew"]
     movies = movies.merge(credits, on="title")
-    movies = movies[["id_x","title","overview",
-                     "genres","keywords","cast_x","crew_x"]]
-    movies.columns = ["movie_id","title","overview",
-                      "genres","keywords","cast","crew"]
+
+    # Rename columns safely ✅
+    movies.rename(columns={
+        "id_x"  : "movie_id",
+        "cast_x": "cast",
+        "crew_x": "crew"
+    }, inplace=True)
+
+    movies = movies[["movie_id","title","overview",
+                     "genres","keywords","cast","crew"]]
 
     # Convert functions
     def convert(text):
@@ -87,10 +93,10 @@ movies     = pickle.load(open("movies.pkl", "rb"))
 similarity = pickle.load(open("similarity.pkl", "rb"))
 movie_list = movies["title"].values
 
-# ── Token from environment ─────────────────────────────
+# ── Token ──────────────────────────────────────────────
 token = os.getenv("BEARER_TOKEN")
 
-# ── Fetch Poster Function ──────────────────────────────
+# ── Fetch Poster ───────────────────────────────────────
 def fetch_poster(movie_id):
     try:
         headers = {"Authorization": f"Bearer {token}"}
@@ -103,7 +109,7 @@ def fetch_poster(movie_id):
     except:
         return "https://placehold.co/500x750?text=No+Poster"
 
-# ── Recommend Function ─────────────────────────────────
+# ── Recommend ──────────────────────────────────────────
 def recommend(movie):
     idx = movies[movies["title"] == movie].index[0]
     distances = sorted(
@@ -119,19 +125,14 @@ def recommend(movie):
         recommended_posters.append(fetch_poster(movie_id))
     return recommended_movies, recommended_posters
 
-# ── Page UI ────────────────────────────────────────────
+# ── UI ─────────────────────────────────────────────────
 st.title("🎬 Movie Recommendation System")
 st.subheader("Find movies similar to your favourite!")
-
-# ── Dropdown ───────────────────────────────────────────
 selected_movie = st.selectbox("Select a movie:", movie_list)
 
-# ── Show Recommendations ───────────────────────────────
 if st.button("Get Recommendations 🎯"):
     names, posters = recommend(selected_movie)
-
     col1, col2, col3, col4, col5 = st.columns(5)
-
     with col1:
         st.text(names[0])
         st.image(posters[0])
